@@ -13,90 +13,166 @@ const cookieOption={
 
 
 // Register  
-const register = async(req,res,next)=>{
+// const register = async(req,res,next)=>
+//     {
 
-    const {fullName,email,password}= req.body;
-
-
-     // Check if user misses any fields
-    if(!fullName || !email ||  !password){
-        return next( new AppError ('All feilds are required ', 404));
-    }
+//     const {fullName,email,password}= req.body;
 
 
-      // Check if the user already exists
-    const userExists = await User.findOne({email});
+//      // Check if user misses any fields
+//     if(!fullName || !email ||  !password){
+//         return next( new AppError ('All feilds are required ', 404));
+//     }
 
-    if(userExists){
-        return next( new AppError ('Email already exists ', 404));
+
+//       // Check if the user already exists
+//     const userExists = await User.findOne({email});
+
+//     if(userExists){
+//         return next( new AppError ('Email already exists ', 404));
 
 
-    }
+//     }
 
-      // Save user in the database and log the user in
-    const user = await User.create({
-        fullName,
-        email,
-        password,
-        avatar:{
-            public_id:email,
-            secure_url:"https://res.cloudinary.com/private-demo/image/upload/yellow_tulip.jpg"
-        }
+//       // Save user in the database and log the user in
+//     const user = await User.create({
+//         fullName,
+//         email,
+//         password,
+//         avatar:{
+//             public_id:email,
+//             secure_url:"https://res.cloudinary.com/private-demo/image/upload/yellow_tulip.jpg"
+//         }
 
        
-    });
-    if (!user) {
-        return next(new AppError("User registration failed, please try again", 400));
-    }
+//     });
+//     if (!user) {
+//         return next(new AppError("User registration failed, please try again", 400));
+//     }
 
-    // TODO:FILe upload
+//     // TODO:FILe upload
 
-    if(req.file){
-        console.log(req.file)
-        try{
-            const  result = cloudinary.v2.uploader.upload(req.file.path,{
-                flder:'lms',
-                width:'250',
-                height:'250',
-                gravity:'faces',
-                crop:'fill'
-            });
-            if(result){
-               user.avatar.public_id = result.public_id;
-               user.avatar.secure_url =  result.secure_url;
+//     if(req.file){
+//         console.log(req.file)
+//         try{
+//             const  result = cloudinary.v2.uploader.upload(req.file.path,{
+//                 flder:'lms',
+//                 width:'250',
+//                 height:'250',
+//                 gravity:'faces',
+//                 crop:'fill'
+//             });
+//             if(result){
+//                user.avatar.public_id = result.public_id;
+//                user.avatar.secure_url =  result.secure_url;
 
                
-             // Remove the file from the server
-             fs.rm(`uploads/${req.file.filename}`);
+//              // Remove the file from the server
+//              fs.rm(`uploads/${req.file.filename}`);
 
-            }
+//             }
 
-        }catch(e){
-            return next(new AppError(e.message || "File not uploaded, please try again", 500));
+//         }catch(e){
+//             return next(new AppError(e.message || "File not uploaded, please try again", 500));
 
+//         }
+
+//     }
+
+
+
+//     await user.save();
+
+//     user.password= undefined;
+
+//     const token = await user.generateJWTToken();
+//     res.cookie('token' ,token, cookieOption)
+    
+    
+
+//     res.status(201).json({
+//         success:true,
+//         message:'USer resgitered successfully',
+//         user,
+//     })
+
+// };
+
+
+const register = async (req, res, next) => {
+    try {
+        const { fullName, email, password } = req.body;
+
+        // Check if user misses any fields
+        if (!fullName || !email || !password) {
+            return next(new AppError("All fields are required", 400));
         }
 
+        // Check if the user already exists
+        const userExist = await User.findOne({ email });
+        if (userExist) {
+            return next(new AppError("Email already exists, please login", 400));
+        }
+
+        // Save user in the database and log the user in
+        const user = await User.create({
+            fullName,
+            email,
+            password,
+            avatar: {
+                public_id: email,
+                secure_url: " ",
+            },
+        });
+
+        if (!user) {
+            return next(new AppError("User registration failed, please try again", 400));
+        }
+
+        // File upload
+        if (req.file) {
+            try {
+                const result = await cloudinary.v2.uploader.upload(req.file.path, {
+                    folder: "Learning-Management-System",
+                    width: 250,
+                    height: 250,
+                    gravity: "faces",
+                    crop: "fill",
+                });
+
+                if (result) {
+                    user.avatar.public_id = result.public_id;
+                    user.avatar.secure_url = result.secure_url;
+
+                    // Remove the file from the server
+                    fs.rmSync(`uploads/${req.file.filename}`);
+                }
+            } catch (e) {
+                return next(new AppError(e.message || "File not uploaded, please try again", 500));
+            }
+        }
+
+        await user.save();
+
+        user.password = undefined;
+
+        const token = await user.generateJWTToken();
+
+        res.cookie("token", token, cookieOption);
+
+        res.status(201).json({
+            success: true,
+            message: "User registered successfully",
+            user,
+        });
+    } catch (e) {
+        return next(new AppError(e.message, 500));
     }
-
-
-
-    await user.save();
-
-    user.password= undefined;
-
-    const token = await user.generateJWTToken();
-    res.cookie('token' ,token, cookieOption)
-    
-    
-
-    res.status(201).json({
-        success:true,
-        message:'USer resgitered successfully',
-        user,
-    })
-
 };
 
+
+
+// Login
 const login= async(req,res,next)=>{
 
     try{
@@ -104,12 +180,14 @@ const login= async(req,res,next)=>{
         
     const {email,password} = req.body;
 
-        // check if user miss any field
+  // check if user miss any field
+
+
     if(!email || !password){
         return next(new AppError('All feild are required',400));
     }
 
-    const user = await user.findOne({
+    const user = await User.findOne({
         email
     }).select('+password');
 
@@ -123,9 +201,10 @@ const login= async(req,res,next)=>{
 
     res.status(200).json({
        success:true,
-       message:'USer loogedin successfully',
+       message:'User loggedin successfully',
        user, 
     });
+
 
 }
 

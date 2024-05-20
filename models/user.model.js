@@ -12,7 +12,7 @@ const userSchema = new Schema({
         maxLength:[50 ,'Name shouls be less than 50 characters'],
         lowerCase:true,
     },
-    emails:{
+    email:{
         type:'String',
         requires:[true,'Email is required'],
         lowerCase:true,
@@ -68,7 +68,7 @@ userSchema.methods = {
             {id:this._id , email:this.email, subscription:this.subscription, role: this.role},
             process.env.JWT_SECRET,
             {
-                expiresIn: process.env.JWT_SECRET
+                expiresIn: process.env.JWT_EXPIRY
             }
         )
     },
