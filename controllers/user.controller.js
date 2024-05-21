@@ -145,7 +145,7 @@ const register = async (req, res, next) => {
                     user.avatar.secure_url = result.secure_url;
 
                     // Remove the file from the server
-                    fs.rmSync(`uploads/${req.file.filename}`);
+                    fs.rm(`uploads/${req.file.filename}`);
                 }
             } catch (e) {
                 return next(new AppError(e.message || "File not uploaded, please try again", 500));
@@ -347,7 +347,7 @@ const changePassword = async(req,res,next)=>{
 
     }
 
-    const user = await user.findOne(id).select('+password');
+    const user = await User.findById(id).select('+password');
 
     if(!user){
         return next(
@@ -357,12 +357,17 @@ const changePassword = async(req,res,next)=>{
     }
      const isPasswordvalid = await user.comparePassword(oldPassword);
 
-     if(!isPasswordvalid){
-        return next(
-            new AppError('Invalid old password',400)
+    //  if(!isPasswordvalid){
+    //     return next(
+    //         new AppError('Invalid old password',400)
 
-        )
-     }
+    //     )
+    //  }
+
+    if (!(bcrypt.compareSync(oldPassword, user.password))) {
+        return next(new AppError("Invalid Old Password", 400));
+    }
+
      user.password  = newPassword;
 
      await user.save();
@@ -378,12 +383,14 @@ const changePassword = async(req,res,next)=>{
 
 }
 
+//update user
+
 const updateUser = async(req,res)=>{
 
     const {fullName} = req.body;
     const {id} = req.user.id;
     
-    const user = await userfindById(id);
+    const user = await User.findById(id);
 
     if(!user){
         return next(
@@ -427,7 +434,9 @@ const updateUser = async(req,res)=>{
 
     res.status(200).json({
         success:true,
-        message:'user datils updated successfully'
+        message:'user datils updated successfully',
+        user
+        
     });
 
 
